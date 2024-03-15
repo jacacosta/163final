@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top 10 Genres: Valence, Energy, Danceability</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <svg id="barChart" width="800" height="800"></svg>
+
+    <script>
+        d3.csv("data_by_genres.csv").then(function(data) {
+            data.forEach(function(d) {
+                d.valence = +d.valence;
+                d.energy = +d.energy;
+                d.danceability = +d.danceability;
+                d.popularity = +d.popularity;
+            });
+
+            const sortedData = data.sort((a, b) => b.popularity - a.popularity);
+            const topGenres = sortedData.slice(0, 10);
+
+            const margin = { top: 30, right: 90, bottom: 70, left: 90 };
+            const width = 900 - margin.left - margin.right;
+            const height = 600 - margin.top - margin.bottom;
+
+            const svg = d3.select("#barChart")
+                          .attr("width", width + margin.left + margin.right)
+                          .attr("height", height + margin.top + margin.bottom)
+                          .append("g")
+                          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            const x = d3.scaleBand()
+                        .domain(topGenres.map(function(d) { return d.genres; }))
+                        .range([0, width])
+                        .padding(0.1);
+
+            const y = d3.scaleLinear()
+                        .domain([0, d3.max(topGenres, function(d) { return Math.max(d.valence, d.energy, d.danceability); })])
+                        .nice()
+                        .range([height, 0]);
+
+            svg.selectAll(".valenceBar")
+                .data(topGenres)
+                .enter().append("rect")
+                .attr("class", "valenceBar")
+                .attr("x", function(d) { return x(d.genres) + x.bandwidth() / 4; })
+                .attr("width", x.bandwidth() / 4)
+                .attr("y", function(d) { return y(d.valence); })
+                .attr("height", function(d) { return height - y(d.valence); })
+                .style("fill", "steelblue");
+
+            svg.selectAll(".energyBar")
+                .data(topGenres)
+                .enter().append("rect")
+                .attr("class", "energyBar")
+                .attr("x", function(d) { return x(d.genres) + x.bandwidth() / 2; })
+                .attr("width", x.bandwidth() / 4)
+                .attr("y", function(d) { return y(d.energy); })
+                .attr("height", function(d) { return height - y(d.energy); })
+                .style("fill", "green");
+
+            svg.selectAll(".danceabilityBar")
+                .data(topGenres)
+                .enter().append("rect")
+                .attr("class", "danceabilityBar")
+                .attr("x", function(d) { return x(d.genres) + 3 * x.bandwidth() / 4; })
+                .attr("width", x.bandwidth() / 4)
+                .attr("y", function(d) { return y(d.danceability); })
+                .attr("height", function(d) { return height - y(d.danceability); })
+                .style("fill", "orange");
+
+            svg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .style("text-anchor", "end")
+                .attr("dx", "-0.6em")
+                .attr("dy", "0.15em");
+
+            svg.append("g")
+                .call(d3.axisLeft(y));
+
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0 - margin.left)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .text("Value");
+
+            const legend = svg.append("g")
+                .attr("class", "legend")
+                .attr("transform", "translate(" + (width - 10) + "," + 20 + ")");
+
+            legend.append("rect")
+                .attr("x", 0)
+                .attr("width", 10)
+                .attr("height", 10)
+                .attr("fill", "steelblue");
+
+            legend.append("text")
+                .attr("x", 15)
+                .attr("y", 10)
+                .text("Valence");
+
+            legend.append("rect")
+                .attr("x", 0)
+                .attr("y", 20)
+                .attr("width", 10)
+                .attr("height", 10)
+                .attr("fill", "green");
+
+            legend.append("text")
+                .attr("x", 15)
+                .attr("y", 30)
+                .text("Energy");
+
+            legend.append("rect")
+                .attr("x", 0)
+                .attr("y", 40)
+                .attr("width", 10)
+                .attr("height", 10)
+                .attr("fill", "orange");
+
+            legend.append("text")
+                .attr("x", 15)
+                .attr("y", 50)
+                .text("Danceability");
+        });
+    </script>
+</body>
+</html>
