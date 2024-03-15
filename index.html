@@ -1,0 +1,243 @@
+<!doctype html>
+<html style="width:100%;height:100%;">
+<head>
+	<meta charset="utf-8">
+	<meta name="description" content="">
+	<title>D3 Example</title>
+</head>
+<body style="width:100%;height:100%;margin-top: 50px 50px;">
+    
+    <!-- Initialize a select button -->
+    <label for="selectButton">Top 12 Most Common Genres: <select id="selectButton"></select></label><br><br>
+    <label for="xaxis">X Axis Variable: <select id="xaxis"></select></label>
+	<svg width="100%" height="100%">
+	</svg>
+    <div id="tooltip"></div>
+	<script src="https://d3js.org/d3.v5.min.js"></script>
+	
+	<script>
+        let abFilter = 25
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+let scatterLeft = 0, scatterTop = 0;
+let scatterMargin = {top: 10, right: 30, bottom: 30, left: 60},
+    scatterWidth = 400 - scatterMargin.left - scatterMargin.right,
+    scatterHeight = 350 - scatterMargin.top - scatterMargin.bottom;
+
+let distrLeft = 400, distrTop = 0;
+let distrMargin = {top: 10, right: 30, bottom: 30, left: 60},
+    distrWidth = 400 - distrMargin.left - distrMargin.right,
+    distrHeight = 350 - distrMargin.top - distrMargin.bottom;
+
+let teamLeft = 0, teamTop = 400;
+let teamMargin = {top: 10, right: 30, bottom: 30, left: 60},
+    teamWidth = width - teamMargin.left - teamMargin.right,
+    teamHeight = height-450 - teamMargin.top - teamMargin.bottom;
+    
+d3.csv("./data_w_genres.csv").then(rawData =>{
+    console.log("rawData", rawData);
+
+    
+    rawData.forEach(function(d){
+        d.genres = String(d.genres);
+        d.acousticness = Number(d.acousticness);
+        d.danceability = Number(d.danceability);
+        d.duration_ms = Number(d.duration_ms);
+        d.energy = Number(d.energy);
+        d.instrumentalness = Number(d.instrumentalness);
+        d.liveness = Number(d.liveness);
+        d.loudness = Number(d.loudness);
+        d.popularity = Number(d.popularity);
+        d.speechiness = Number(d.speechiness);
+        d.tempo = Number(d.tempo);
+        d.valence = Number(d.valence);
+    });
+
+    const genres = {};
+    for(let i = 0; i < rawData.length; i++) {
+        var arr = rawData[i]["genres"].replace("[","").replace("]","").split(",");
+        for(let j = 0; j < arr.length; j++) {
+            if (arr[j] in genres) {
+                genres[arr[j]] = genres[arr[j]]+1;
+            }
+            else {
+                genres[arr[j]] = 0;                
+            }
+        }
+    }
+
+    // Find most popular genres
+    function maxValues(o, n) {
+        // Get object values and sort descending
+        const values = Object.values(o).sort((a, b) => b - a);
+        
+        // Check if more values exist than number required
+        if (values.length <= n) return o;
+        
+        // Find nth maximum value
+        const maxN = values[n - 1];
+        
+        // Filter object to return only key/value pairs where value >= maxN
+        return Object.entries(o)
+          .reduce((o, [k, v]) => v >= maxN ? { ...o, [k]: v } : o, {});
+    }
+
+    console.log(maxValues(genres,15));
+
+
+    var allGroups = ["rock", "pop", "rap", "pop rap", "hip hop", "dance pop", "pop rock", "urban contemporary", "folk rock", "modern rock", "mellow gold", "trap"];
+    var axes = ["Acousticness", "Danceability", "Duration_ms", "Energy", "Instrumentalness", "Liveness", "Loudness", "Speechiness", "Tempo", "Valence"];
+
+    d3.select("#selectButton")
+        .selectAll('myOptions')
+        .data(allGroups)
+        .enter()
+        .append('option')
+        .text(function(d) {return d;})
+        .attr("value", function(d) {return d;});
+
+    d3.select("#xaxis")
+        .selectAll('myOptions')
+        .data(axes)
+        .enter()
+        .append('option')
+        .text(function(d) {return d;})
+        .attr("value", function(d) {return d;});
+
+    const svg = d3.select("svg");
+    var g = svg.append("g").attr("transform", "translate("+100 + "," + 50+")");
+    
+    // these should all be updated when x and y vals are changed
+    var x = d3.scaleLinear()
+    .domain([0, 1])
+    .range([ 0, 500 ]);
+  
+    var xscale = g.append("g")
+    .attr("transform", "translate(0," + 400 + ")")
+    .call(d3.axisBottom(x));
+
+    // Add Y axis
+    var y = d3.scaleLinear()
+        .domain([0, 100])
+        .range([400, 0]);
+    g.append("g")
+        .call(d3.axisLeft(y));
+
+    // x label
+    var xlabel = g.append("text")
+    .attr("x", 250)
+    .attr("y", 450)
+    .attr("font-size", "20px")
+    .attr("font-weight", "bold")
+    .attr("text-anchor", "middle")
+    .text("Acousticness");
+
+    // y label
+    g.append("text")
+    .attr("x", -(400 / 2))
+    .attr("y", -50)
+    .attr("font-size", "20px")
+    .attr("font-weight", "bold")
+    .attr("text-anchor", "middle")
+    .attr("transform", "rotate(-90)")
+    .text("Popularity");
+
+  // Add dots
+  var dot = g.append('g')
+    .selectAll("dot")
+    .data(rawData)
+    .enter()
+    .append("circle")
+      .attr("cx", function (d) { if(d.genres.includes(allGroups[0])) {return x(d.acousticness);} } )
+      .attr("cy", function (d) { if(d.genres.includes(allGroups[0])) {return y(d.popularity)};} )
+      .attr("r", 2)
+      .style("fill", "#1ED760");
+
+    var title = g.append('text')
+      .attr('class', 'title')
+      .attr('x', 500 / 2)
+      .attr('y', -15)
+      .attr("font-size", "25px")
+      .attr("font-weight", "bold")
+      .attr('text-anchor', 'middle')
+      .text('Acousticness vs. Popularity');
+
+    function update(selectedGroup, xAxisVal) {
+        var selectedGroup1 = selectedGroup.toLowerCase();
+        var xAxisVal1 = xAxisVal.toLowerCase();
+        // Give these new data to update line
+        let index = 0;
+        for (let i = 0; i < allGroups.length; i++) {
+            if (allGroups[i] === selectedGroup1) {
+                index = i;
+                break;
+            }
+        }
+
+        // update x-axis scale
+        // find min and max domain values by genre...
+        var min = rawData[0][xAxisVal1];
+        var max = rawData[0][xAxisVal1];
+        for (let i = 0; i < rawData.length; i++) {
+            if(rawData[i][xAxisVal1] < min)
+            {
+                min = rawData[i][xAxisVal1];
+            }
+            if(rawData[i][xAxisVal1] > max) {
+                max = rawData[i][xAxisVal1];
+            }
+        }
+        min = Math.round(min);
+        max = Math.round(max);
+
+        x.domain([min, max])
+        .range([ 0, 500 ]);
+        xscale.attr("transform", "translate(0," + 400 + ")")
+            .call(d3.axisBottom(x));
+
+        // x label
+        xlabel.attr("x", 250)
+            .attr("y", 450)
+            .attr("font-size", "15px")
+            .attr("font-weight", "bold")
+            .attr("text-anchor", "middle")
+            .text(xAxisVal);
+
+        // update title
+        title.text(xAxisVal + ' vs. Popularity');
+            
+        // update dots
+        dot
+          .data(rawData)
+          .transition()
+          .duration(1000)
+            .attr("cx", function(d) { if(d.genres.includes(allGroups[index])) {return x(d[xAxisVal1])}})
+            .attr("cy", function(d) {if(d.genres.includes(allGroups[index])) {if(d.artists === "Sound Carrie") {console.log("HI")}return y(d.popularity)}})
+      }
+    
+    var selectedOption = "Rock";
+    var xaxis_val = "Acousticness";
+
+    // When the button is changed, run the updateChart function
+    d3.select("#selectButton").on("change", function(d) {
+        // recover the option that has been chosen
+        selectedOption = d3.select(this).property("value")
+        update(selectedOption, xaxis_val);
+    })
+
+    d3.select("#xaxis").on("change", function(d) {
+        // recover the option that has been chosen
+        xaxis_val = d3.select(this).property("value")
+        update(selectedOption, xaxis_val);
+    })
+
+
+}).catch(function(error){
+    console.log(error);
+});
+
+
+	</script>
+</body>
+</html>
